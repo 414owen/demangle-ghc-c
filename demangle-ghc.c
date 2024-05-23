@@ -168,6 +168,7 @@ enum result str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_c
 #define ADVANCE c = (*mangled++)
 #define PUSH(c) if (str_buf_push(&buf, (c)) == failure) goto fail;
 #define PUSH_STR(s) if (str_buf_push_str(&buf, (s)) == failure) goto fail;
+#define PUSH_CHAR_CODE(code) if (str_buf_push_char_code(&buf, (code)) == failure) goto fail;
 #define RESERVE(n) if (str_buf_reserve(&buf, (n)) == failure) goto fail;
 
 char *
@@ -202,9 +203,7 @@ haskell_demangle(const char *mangled)
           if (PEEK != 'U') {
             goto fail;
           }
-          if (str_buf_push_char_code(&buf, char_code) == failure) {
-            goto fail;
-          }
+          PUSH_CHAR_CODE(char_code);
           ADVANCE;
           continue;
         }
