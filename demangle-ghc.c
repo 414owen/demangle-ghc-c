@@ -27,7 +27,6 @@ appreciated.
 
 
 #include <ctype.h>
-#include <stdbool.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -76,25 +75,29 @@ struct str_buf {
   char *data;
 };
 
-// true signals an error
+enum result {
+  success = 0,
+  failure = 1,
+};
+
 static
-bool str_buf_push(struct str_buf *restrict buf, char c) {
+enum result str_buf_push(struct str_buf *restrict buf, char c) {
   if (buf->length == buf->capacity) {
     // capacity := 1.5x
     buf->capacity += buf->capacity / 2;
     buf->data = realloc(buf->data, buf->capacity);
     if (buf->data == NULL) {
-      return true;
+      return failure;
     }
   }
   buf->data[buf->length++] = c;
-  return false;
+  return success;
 }
 
 // Ensure this much free space is available
 // true signals an error
 static
-bool str_buf_reserve(struct str_buf *restrict buf, size_t amt) {
+enum result str_buf_reserve(struct str_buf *restrict buf, size_t amt) {
   const size_t new_len = buf->length + amt;
   size_t capacity = buf->capacity;
   if (new_len > capacity) {
@@ -105,34 +108,34 @@ bool str_buf_reserve(struct str_buf *restrict buf, size_t amt) {
     }
     buf->data = realloc(buf->data, capacity);
     if (buf->data == NULL) {
-      return true;
+      return failure;
     }
     buf->capacity = capacity;
   }
-  return false;
+  return success;
 }
 
 // true signals an error
 static
-bool str_buf_push_str(struct str_buf *restrict buf, const char *str) {
+enum result str_buf_push_str(struct str_buf *restrict buf, const char *str) {
   size_t len = strlen(str);
   if (str_buf_reserve(buf, len)) {
-    return true;
+    return failure;
   }
   memcpy(buf->data, str, len);
   buf->length += len;
-  return false;
+  return success;
 }
 
 // true signals an error
 static
-bool str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
+enum result str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
   // This may look like up to three bytes too many, but GHC loves adding
   // suffixes to symbol names (_bytes, _info, _closure, _slow, _fast,
   // _srt, _str, _tbl, _btm, etc.)
   // In 99.9% of cases any overallocation will end up being used.
   if (str_buf_reserve(buf, 4)) {
-    return true;
+    return failure;
   }
 #define PUSH(c) buf->data[buf->length++] = c
   if (char_code <= 0x7F) {
@@ -151,9 +154,9 @@ bool str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
     PUSH(((char_code >>  6) & 0x3F) | 0x80);
     PUSH(((char_code >>  0) & 0x3F) | 0x80);
   } else {
-    return true;
+    return failure;
   }
-  return false;
+  return success;
 #undef PUSH
 }
 
@@ -163,9 +166,9 @@ bool str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
 
 #define PEEK c
 #define ADVANCE c = (*mangled++)
-#define PUSH(c) if (str_buf_push(&buf, (c))) goto fail;
-#define PUSH_STR(s) if (str_buf_push_str(&buf, (s))) goto fail;
-#define RESERVE(n) if (str_buf_reserve(&buf, (n))) goto fail;
+#define PUSH(c) if (str_buf_push(&buf, (c)) == failure) goto fail;
+#define PUSH_STR(s) if (str_buf_push_str(&buf, (s)) == failure) goto fail;
+#define RESERVE(n) if (str_buf_reserve(&buf, (n)) == failure) goto fail;
 
 char *
 haskell_demangle(const char *mangled)
@@ -179,7 +182,7 @@ haskell_demangle(const char *mangled)
   char c;
   ADVANCE;
 
-  while (true) {
+  for (;;) {
     switch (PEEK) {
       case 'z':
         ADVANCE;
@@ -199,7 +202,7 @@ haskell_demangle(const char *mangled)
           if (PEEK != 'U') {
             goto fail;
           }
-          if (str_buf_push_char_code(&buf, char_code)) {
+          if (str_buf_push_char_code(&buf, char_code) == failure) {
             goto fail;
           }
           ADVANCE;
