@@ -122,7 +122,7 @@ enum result str_buf_push_str(struct str_buf *restrict buf, const char *str) {
   if (str_buf_reserve(buf, len)) {
     return failure;
   }
-  memcpy(buf->data, str, len);
+  memcpy(&buf->data[buf->length], str, len);
   buf->length += len;
   return success;
 }
