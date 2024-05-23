@@ -166,6 +166,8 @@ enum result str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_c
 
 #define PEEK c
 #define ADVANCE c = (*mangled++)
+#define EXPECT(c) if (PEEK != (c)) { goto fail; }
+#define EXPECT_BETWEEN(start, end) if (PEEK < (start) || PEEK > (end)) { goto fail; }
 #define PUSH(c) if (str_buf_push(&buf, (c)) == failure) goto fail;
 #define PUSH_STR(s) if (str_buf_push_str(&buf, (s)) == failure) goto fail;
 #define PUSH_CHAR_CODE(code) if (str_buf_push_char_code(&buf, (code)) == failure) goto fail;
@@ -200,16 +202,12 @@ haskell_demangle(const char *mangled)
             }
             ADVANCE;
           } while (isxdigit(PEEK));
-          if (PEEK != 'U') {
-            goto fail;
-          }
+          EXPECT('U');
           PUSH_CHAR_CODE(char_code);
           ADVANCE;
           continue;
         }
-        if (PEEK < 'a' || PEEK > 'z') {
-          goto fail;
-        }
+        EXPECT_BETWEEN('a', 'z');
         char out = z_chars[PEEK - 'a'];
         if (out == '\0') {
           goto fail;
@@ -273,9 +271,7 @@ haskell_demangle(const char *mangled)
               goto fail;
           }
         } else {
-          if (PEEK < 'C' || PEEK > 'Z') {
-            goto fail;
-          }
+          EXPECT_BETWEEN('C', 'Z');
           char out = Z_chars[PEEK - 'C'];
           if (out == '\0') {
             goto fail;
