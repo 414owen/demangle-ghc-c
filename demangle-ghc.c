@@ -127,6 +127,10 @@ bool str_buf_push_str(struct str_buf *restrict buf, const char *str) {
 // true signals an error
 static
 bool str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
+  // This may look like up to three bytes too many, but GHC loves adding
+  // suffixes to symbol names (_bytes, _info, _closure, _slow, _fast,
+  // _srt, _str, _tbl, _btm, etc.)
+  // In 99.9% of cases any overallocation will end up being used.
   if (str_buf_reserve(buf, 4)) {
     return true;
   }
