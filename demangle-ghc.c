@@ -32,6 +32,11 @@ appreciated.
 #include <stdlib.h>
 #include <string.h>
 
+/*
+Demangles symbol names produced by the GHC haskell compiler.
+See https://gitlab.haskell.org/ghc/ghc/wikis/commentary/compiler/symbol-names
+*/
+
 static
 char z_chars[] = {
   ['a' - 'a'] = '&',
