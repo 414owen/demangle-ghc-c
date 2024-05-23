@@ -157,7 +157,10 @@ bool str_buf_push_char_code(struct str_buf *restrict buf, uint32_t char_code) {
 #undef PUSH
 }
 
-#define DEFAULT_BUF_SIZE 20
+// The longest symbol name produced by GHC in a large shared library
+// I tested, was 163 bytes long. The demangled output was 145 bytes.
+#define DEFAULT_BUF_SIZE 160
+
 #define PEEK c
 #define ADVANCE c = (*mangled++)
 #define PUSH(c) if (str_buf_push(&buf, (c))) goto fail;
